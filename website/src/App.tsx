@@ -145,12 +145,16 @@ export default function App() {
 
   // While the catalog is empty (loading OR the API returned zero subjects),
   // feed CurriculumSelector 12 ellipsis placeholders so the dial structure is
-  // visible. We index the placeholders so they collide neither on each other
-  // nor with future real subjects (key collisions would break AnimatePresence).
+  // visible. Memoized to avoid creating a new array reference on every render
+  // (which would force CurriculumSelector to re-render unnecessarily).
+  const loadingPlaceholders = useMemo(
+    () => Array.from({ length: 12 }, (_, i) => `Loading subject ${i + 1}`),
+    []
+  )
   const subjectsForWheel =
     subjectsApi.length > 0
       ? subjectsApi
-      : Array.from({ length: 12 }, (_, i) => `Loading subject ${i + 1}`)
+      : loadingPlaceholders
 
   return (
     <>

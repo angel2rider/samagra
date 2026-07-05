@@ -14,13 +14,14 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="preconnect" href="https://samagra.kite.kerala.gov.in" />
   <link rel="dns-prefetch" href="https://samagra.kite.kerala.gov.in" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" media="print" onload="this.onload=null;this.media='all'" />
   <link rel="icon" href="/logo.png" />
   <!-- Preload the initial API call so it starts while JS parses (default: Malayalam Class 1) -->
   <link rel="preload" as="fetch" href="/api/textbooks?medium=1&class=1" crossorigin="anonymous" />
 </head>
 <body>
-  <!-- Instant splash – shown before JS/React loads -->
+  <!-- Instant splash – shown before JS/React loads. No noise/vignette here;
+       those are handled by React's bg-layers after mount. Minimal HTML parse cost. -->
   <div id="splash-html" class="splash-html" aria-hidden="true">
     <img src="/logo.webp" alt="Samagra Textbooks" class="splash-logo" width="420" height="280" fetchpriority="high"
          onerror="this.onerror=null;this.src='/logo.png'" />
