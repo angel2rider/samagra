@@ -20,25 +20,23 @@ Browse **SCERT Kerala (Samagra) textbooks** online through an interactive radial
 
 ## 🏗️ Architecture
 
+A thin Cloudflare Pages layer that fronts the public Samagra KITE API and
+strips the embedding restrictions so textbooks can be read in-browser.
+
 ```
-Samagra KITE API
-        │
-        ▼
-   VPS crawler                       ← downloads all textbooks once
-        │
-        ├── files < 24 MB   ──►  Cloudflare Pages (CDN)
-        └── files ≥ 24 MB   ──►  GitHub Releases (raw.githubusercontent.com)
-                                        │
-   Browser  ◄────  Cloudflare Pages Functions  ◄────┘
-                    ├── /api/textbooks       (D1 database)
-                    ├── /api/stats           (live counters)
-                    └── /files/*             (CSP-stripping proxy)
+   Browser
+     │
+     ▼
+   Cloudflare Pages
+     ├── /api/textbooks   ──►  Kerala API (1h edge cache)
+     ├── /api/stats       ──►  Kerala API (cached, stale‑while‑revalidate)
+     └── /files/*         ──►  Kerala CDN (24h edge cache, CSP-stripped)
 ```
 
-- **Frontend** — React 18 + Vite + TypeScript, lazy-loaded curriculum selector (Framer Motion split into its own chunk)
-- **API** — Cloudflare Pages Functions (Workers); D1 database holds textbook metadata
-- **Files** — A `/files/*` Pages Function proxies the underlying CDN, strips `x-frame-options` / CSP `frame-ancestors`, and forces `Content-Disposition: inline` so PDFs can be embedded in the in-browser viewer
-- **Hosting** — Cloudflare Pages + GitHub Releases (free for this size of public-good archive)
+- **Frontend** — React 18 + Vite + TypeScript. The 3-ring radial selector and motion library are split into their own chunk so the nav bar renders before the rings finish loading.
+- **`/api/textbooks`** — Pages Function that fetches Kerala's `getSubjectTextbooks/{medium}/{class}` endpoint, joins subjects, culls orphans (Kerala returns ~40 subjects per request regardless of medium), and filters by subject/search. Cache API at the edge, `max-age=3600`.
+- **`/files/*`** — Pages Function that proxies PDFs and thumbnails from `samagra.kite.kerala.gov.in` (tries `uploads2/` then falls back to `uploads/`). It strips `content-security-policy`, `x-frame-options`, and `x-content-type-options`, and forces `Content-Disposition: inline` on PDFs so the in-browser viewer can iframe-embed them — Kerala's own server blocks cross-origin embedding otherwise. `Cache-Control: public, max-age=86400, immutable`.
+- **Hosting** — Cloudflare Pages only. Both `functions/api/*` and `functions/files/*` are deployed automatically from the repo.
 
 ---
 
@@ -69,11 +67,12 @@ npm run deploy
 | Path | What it does |
 |---|---|
 | `website/src/` | React app — `App.tsx`, `CurriculumSelector.tsx`, `Ring.tsx`, `RadialSelector.tsx`, `api.ts` |
-| `website/public/viewer/` | Standalone PDF reader page |
-| `website/migrations/` | D1 SQL schema |
-| `functions/` | Cloudflare Pages Functions (API + files proxy) |
-| `scripts/` | VPS helpers — download, process-file-size partitioning, deploy-to-CF, deploy-to-GitHub, resolve GitHub URLs |
-| `config.js` | Shared constants: medium IDs, class range, API base, CDN limits |
+| `website/public/viewer/` | Standalone PDF reader page (served at `/viewer/`) |
+| `website/migrations/` | D1 SQL schema (legacy; the running API uses a live Kerala proxy, not D1) |
+| `functions/api/` | Cloudflare Pages Function for `/api/textbooks` and `/api/stats` |
+| `functions/files/` | Cloudflare Pages Function for `/files/*` — Kerala CDN proxy with CSP stripped |
+| `scripts/` | Debug & measurement scripts (probe Kerala API, leak checks, D1 verifier, etc.) |
+| `config.js` | Shared constants — medium IDs, class range, API base, CDN limits |
 | `wrangler.toml` | Cloudflare Pages project name + build-output dir |
 | `package.json` | Root scripts (`dev`, `build`, `deploy`) |
 
@@ -97,8 +96,8 @@ Each ring has momentum snap — let go and it settles on the nearest item. The f
 
 A few things keep this snappy on a cold visit:
 
-- Splash logo served as **10 KB WebP** (down from 2.1 MB PNG) with PNG fallback
-- Initial `/api/textbooks` call is **preloaded** while HTML parses
+- Splash logo is a small WebP (~10 KB in current build) with a PNG `onerror` fallback
+- The first `/api/textbooks` call is `<link rel="preload">`'d while HTML parses
 - `content-visibility: auto` on cards skips off-screen rendering
 - Adjacent class data is **prefetched** so spinning the wheel cold-starts the next fetch
 - `/files/*` responses cached at Cloudflare's edge with `Cache-Control: public, max-age=86400, immutable`
@@ -107,5 +106,5 @@ A few things keep this snappy on a cold visit:
 
 ## 📜 License & attribution
 
-- **Code** in this repository: open-source. See `LICENSE` (add one if you intend this to be public).
-- **Book content**: © SCERT Kerala. The PDFs and thumbnails belong to Samagra KITE; this project just provides a faster reader UI over the public [Samagra KITE platform](https://samagra.kite.kerala.gov.in).
+- **Code** in this repository: MIT — see [`LICENSE`](./LICENSE).
+- **Book content**: © SCERT Kerala. The PDFs and thumbnails belong to Samagra KITE; this repository just provides a faster reader UI over the public [Samagra KITE platform](https://samagra.kite.kerala.gov.in).

@@ -9,7 +9,6 @@ pnpm-debug.log*
 
 # VPS-only working dirs (downloaded files, scripts run on the VPS)
 vps/
-*__GITHUB__*
 
 # Cloudflare Pages build artifacts
 website/public/pdfs/
