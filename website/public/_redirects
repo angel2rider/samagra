@@ -1,3 +1,4 @@
 /api/* /api/:splat 200
 /files/* /files/:splat 200
+/viewer/* /viewer/:splat 200
 /* /index.html 200
