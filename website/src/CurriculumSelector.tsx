@@ -35,6 +35,8 @@ export interface CurriculumSelectorProps {
   /** Fires whenever the settled selection changes. */
   onChange?: (selection: CurriculumSelection) => void
   className?: string
+  /** Snaps rings to these values on mount — used to restore state from sessionStorage. */
+  initialSelection?: { language?: string; classLabel?: string; subject?: string }
 }
 
 /* ============================ Tuning knobs ============================ */
@@ -184,6 +186,7 @@ export function CurriculumSelector({
   subjects,
   onChange,
   className,
+  initialSelection,
 }: CurriculumSelectorProps) {
   const [query, setQuery] = useState('')
   const [active, setActive] = useState(false)
@@ -266,8 +269,40 @@ export function CurriculumSelector({
     if (subjBaseAngles.length) setSelSubj(closestIndex(r, subjBaseAngles))
   })
 
-  // Reset subject ring to the top result whenever the search changes.
+  // Snap language and class rings to saved positions on mount.
+  // (Subjects ring snaps later once filteredSubjects contains the saved subject.)
+  const initialApplied = useRef(false)
+  const initialSubjectApplied = useRef(false)
   useEffect(() => {
+    if (!mounted || !initialSelection || initialApplied.current) return
+    const langIdx = initialSelection.language ? languages.indexOf(initialSelection.language) : -1
+    const classIdx = initialSelection.classLabel ? classes.indexOf(initialSelection.classLabel) : -1
+    if (langIdx >= 0) {
+      const ba = langBaseAngles
+      animate(langTarget, snapTarget(0, langIdx, ba), SPRING)
+    }
+    if (classIdx >= 0) {
+      const ba = classBaseAngles
+      animate(classTarget, snapTarget(0, classIdx, ba), SPRING)
+    }
+    initialApplied.current = true
+  }, [mounted]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Snap subject ring once the saved subject appears in the filtered list.
+  useEffect(() => {
+    if (!mounted || !initialSelection?.subject || initialSubjectApplied.current) return
+    const subjIdx = filteredSubjects.indexOf(initialSelection.subject)
+    if (subjIdx >= 0) {
+      const ba = subjBaseAngles
+      animate(subjTarget, snapTarget(0, subjIdx, ba), SPRING)
+      initialSubjectApplied.current = true
+    }
+  }, [mounted, filteredSubjects]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Reset subject ring to the top result whenever the search changes.
+  // Skip if we positioned from a saved initial selection.
+  useEffect(() => {
+    if (initialSubjectApplied.current) return
     animate(subjTarget, 0, SPRING)
     setSelSubj(0)
   }, [query]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -278,7 +313,9 @@ export function CurriculumSelector({
   // smaller arc) would leave the wheel rotated to an angle that doesn't
   // map to any valid baseAngle in the new fixed-step layout, producing
   // a visible desync between snap targets and rendered items.
+  // Skip if we positioned from a saved initial selection.
   useEffect(() => {
+    if (initialSubjectApplied.current) return
     if (subjects.length > 0) {
       animate(subjTarget, 0, SPRING)
       setSelSubj(0)

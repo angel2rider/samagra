@@ -79,12 +79,23 @@ export default function App() {
     }
   }, [])
 
-  // Initial fetch + stats — deleted. The wheel's first onChange drives it.
-  // Still fetch stats independently.
+  // If the user is returning via browser back button, sessionStorage holds
+  // their previous selection — fetch it immediately so the grid is populated
+  // before the wheel even fires its first onChange.
   useEffect(() => {
     fetchStats().then((s) => {
       if (s?.totalComplete) setStats(`${s.totalComplete} textbooks`)
     })
+    const saved = readSaved()
+    // Only auto-fetch if the saved selection differs from the default
+    // (Malayalam, Class 1, no subject). The default case is handled by the
+    // wheel's first onChange like a fresh visit.
+    if (saved.lang !== MEDIUMS[0].name || saved.cls !== '1') {
+      const key = `${saved.lang}::${saved.cls}`
+      lastFetchKeyRef.current = key
+      firstFetchDone.current = true
+      fetchData(saved.lang, saved.cls)
+    }
   }, [])
 
   // Hide the HTML splash once data loads and the wheel has initialised
@@ -183,6 +194,11 @@ export default function App() {
               languages={MEDIUMS.map((m) => m.name)}
               classes={CLASSES.map(String)}
               subjects={subjectsForWheel}
+              initialSelection={{
+                language: saved.current.lang,
+                classLabel: saved.current.cls,
+                subject: saved.current.subj ?? undefined,
+              }}
               onChange={(sel) => {
                 // First selection always triggers the initial fetch.
                 // Pre-set lastFetchKeyRef so handleSelectionChange skips the duplicate.
