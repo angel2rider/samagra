@@ -30,7 +30,11 @@ async function fetchWithHeaders(url, filePath) {
   const mime = getMimeType(filePath);
   if (mime) headers.set('content-type', mime);
   headers.set('access-control-allow-origin', '*');
-  headers.set('cache-control', 'public, max-age=86400, immutable');
+  // Images rarely change — cache for 1 year. PDFs get 1 day.
+  const isImage = /\.(png|jpg|jpeg|gif|webp)$/i.test(filePath);
+  headers.set('cache-control', isImage
+    ? 'public, max-age=31536000, immutable'
+    : 'public, max-age=86400, immutable');
   for (const h of STRIP_HEADERS) headers.delete(h);
   if (filePath.endsWith('.pdf') && headers.has('content-disposition')) {
     headers.set('content-disposition', 'inline');

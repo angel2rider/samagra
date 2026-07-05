@@ -176,7 +176,7 @@ export default function App() {
       <nav className="nav" role="navigation" aria-label="Main navigation">
         <div className="nav-inner">
           <div className="nav-left">
-            <a href="/" className="nav-logo" aria-label="Home">
+            <a href="/" className="nav-logo" aria-label="Samagra Textbooks — Home">
               <span className="logo-ml">സമഗ്ര</span>
               <span className="logo-en">
                 Samagra <span className="logo-a">Textbooks</span>
