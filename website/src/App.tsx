@@ -39,6 +39,11 @@ export default function App() {
   const [stats, setStats] = useState<string>('')
   const mountTime = useRef(Date.now())
   const MIN_SPLASH_MS = 500
+  // Refs for latest state — avoids stale closures in handleSelectionChange
+  const selLangRef = useRef(saved.current.lang)
+  const selClassRef = useRef(saved.current.cls)
+  selLangRef.current = selLang
+  selClassRef.current = selClass
 
   const fetchData = useCallback(async (lang: string, cls: string) => {
     setIsLoading(true)
@@ -99,8 +104,8 @@ export default function App() {
   const lastFetchKeyRef = useRef<string>('')
   const handleSelectionChange = useCallback(
     (sel: CurriculumSelection) => {
-      const langChanged = sel.language !== selLang
-      const classChanged = sel.classLabel !== selClass
+      const langChanged = sel.language !== selLangRef.current
+      const classChanged = sel.classLabel !== selClassRef.current
       setSelLang(sel.language)
       setSelClass(sel.classLabel)
       setSelSubj(sel.subject || null)
@@ -118,7 +123,7 @@ export default function App() {
         }
       }
     },
-    [selLang, selClass, fetchData],
+    [fetchData],
   )
 
   // Filtering is client-side: subject pickList narrows textbook grid instantly.
@@ -179,10 +184,12 @@ export default function App() {
               classes={CLASSES.map(String)}
               subjects={subjectsForWheel}
               onChange={(sel) => {
-                // First selection always triggers the initial fetch
-                // (handleSelectionChange skips if lang/class unchanged)
+                // First selection always triggers the initial fetch.
+                // Pre-set lastFetchKeyRef so handleSelectionChange skips the duplicate.
                 if (!firstFetchDone.current) {
                   firstFetchDone.current = true
+                  const key = `${sel.language}::${sel.classLabel}`
+                  lastFetchKeyRef.current = key
                   fetchData(sel.language, sel.classLabel)
                 }
                 handleSelectionChange(sel)
@@ -260,8 +267,11 @@ export default function App() {
                     <img
                       src={book.thumbUrl || '/hero-bg.png'}
                       alt={displayName(book)}
+                      width="300"
+                      height="400"
                       loading="lazy"
                       decoding="async"
+                      fetchPriority="low"
                       onError={(e) => {
                         ;(e.target as HTMLImageElement).src = '/hero-bg.png'
                       }}

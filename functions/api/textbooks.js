@@ -18,7 +18,7 @@ const CACHE_TTL = 3600; // 1 hour
 const JSON_HEADERS = {
   'content-type': 'application/json; charset=utf-8',
   'access-control-allow-origin': '*',
-  'cache-control': `public, max-age=${CACHE_TTL}`,
+  'cache-control': `public, max-age=${CACHE_TTL}, stale-while-revalidate=${CACHE_TTL}`,
 };
 
 function emptyResponse(mediumId, classId) {
@@ -45,25 +45,6 @@ function mapSubjects(rawSubjects) {
   }));
 }
 
-function mapTextbooks(rawTextbooks, subjectsById, mediumId, classId) {
-  return rawTextbooks.map((t) => {
-    const subj = subjectsById.get(Number(t.subjectId));
-    const pdfRel = (t.chapterPdfUrl || '').replace(/^\/+/, '');
-    const thumbRel = (t.chapterThumbUrl || '').replace(/^\/+/, '');
-    return {
-      id: Number(t.id),
-      chapterName: t.chapterName ?? null,
-      mediumId,
-      classId,
-      subjectId: t.subjectId != null ? Number(t.subjectId) : null,
-      pdfUrl: pdfRel ? `/files/${pdfRel}` : null,
-      thumbUrl: thumbRel ? `/files/${thumbRel}` : null,
-      downloadState: 'complete',
-      subjectName: subj ? subj.subjectName : null,
-    };
-  });
-}
-
 export async function onRequest(context) {
   const { request } = context;
   const url = new URL(request.url);
@@ -81,7 +62,7 @@ export async function onRequest(context) {
     const cached = await cache.match(cacheKey);
     if (cached) {
       // Re-emit with refreshed CORS header (Cloudflare strips sometimes).
-      return new Response(await cached.text(), { headers: JSON_HEADERS });
+      return new Response(cached.body, { headers: JSON_HEADERS });
     }
   } catch (e) {
     // Cache failure is non-fatal; fall through to live fetch.
@@ -137,19 +118,40 @@ export async function onRequest(context) {
     if (s && s.id != null) subjectsById.set(Number(s.id), s);
   }
 
-  let textbooks = mapTextbooks(rawTextbooks, subjectsById, mediumId, classId);
+  // Map textbooks + apply filters in a single pass
+  const hasSubjFilter = subjectId != null && !Number.isNaN(subjectId);
+  const q = search ? search.toLowerCase() : '';
+  const textbooks = [];
+  for (const t of rawTextbooks) {
+    if (!t) continue;
 
-  // 3. Worker-side subject + search filters.
-  if (subjectId != null && !Number.isNaN(subjectId)) {
-    textbooks = textbooks.filter((b) => b.subjectId === subjectId);
-  }
-  if (search) {
-    const q = search.toLowerCase();
-    textbooks = textbooks.filter(
-      (b) =>
-        (b.chapterName && b.chapterName.toLowerCase().includes(q)) ||
-        (b.subjectName && b.subjectName.toLowerCase().includes(q))
-    );
+    // Subject filter
+    if (hasSubjFilter && Number(t.subjectId) !== subjectId) continue;
+
+    const subj = subjectsById.get(Number(t.subjectId));
+    const sn = subj ? subj.subjectName : null;
+
+    // Search filter
+    if (search) {
+      const cn = t.chapterName;
+      const cnMatch = cn && cn.toLowerCase().includes(q);
+      const snMatch = sn && sn.toLowerCase().includes(q);
+      if (!cnMatch && !snMatch) continue;
+    }
+
+    const pdfRel = (t.chapterPdfUrl || '').replace(/^\/+/, '');
+    const thumbRel = (t.chapterThumbUrl || '').replace(/^\/+/, '');
+    textbooks.push({
+      id: Number(t.id),
+      chapterName: t.chapterName ?? null,
+      mediumId,
+      classId,
+      subjectId: t.subjectId != null ? Number(t.subjectId) : null,
+      pdfUrl: pdfRel ? `/files/${pdfRel}` : null,
+      thumbUrl: thumbRel ? `/files/${thumbRel}` : null,
+      downloadState: 'complete',
+      subjectName: sn,
+    });
   }
 
   const responseBody = {

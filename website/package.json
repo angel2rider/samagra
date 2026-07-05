@@ -10,7 +10,6 @@
   },
   "dependencies": {
     "@rollup/rollup-linux-x64-gnu": "^4.62.2",
-    "lucide-react": "^0.454.0",
     "motion": "^11.11.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"

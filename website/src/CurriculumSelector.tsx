@@ -19,7 +19,7 @@ import {
   useSpring,
   type MotionValue,
 } from 'motion/react'
-import { Search } from 'lucide-react'
+
 
 /* ============================ Public API ============================ */
 export interface CurriculumSelection {
@@ -915,7 +915,7 @@ export function CurriculumSelector({
         {/* -------- right: search + live selection -------- */}
         <div className="cs-sidebar">
           <div className="cs-search">
-            <Search className="cs-search-icon" size={16} />
+            <svg className="cs-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}

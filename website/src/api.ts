@@ -90,7 +90,9 @@ export function getFilteredSubjects(subjectsApi: Subject[], search: string): str
   const pool = subjectsApi.length > 0 ? subjectsApi.map(s => s.subjectName) : ALL_SUBJECTS_FALLBACK
   if (!search.trim()) return pool
   const q = search.toLowerCase()
-  return pool.filter(s => s.toLowerCase().includes(q))
+  // Pre-compute lowercase pool once to avoid repeated .toLowerCase() per item per keystroke
+  const lowerPool = pool.map(s => s.toLowerCase())
+  return pool.filter((_, i) => lowerPool[i].includes(q))
 }
 
 export async function fetchStats(): Promise<{ totalComplete: number } | null> {

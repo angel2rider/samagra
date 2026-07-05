@@ -11,7 +11,8 @@ const MIME_TYPES = {
 };
 
 function getMimeType(filePath) {
-  const ext = Object.keys(MIME_TYPES).find((e) => filePath.endsWith(e));
+  const lower = filePath.toLowerCase();
+  const ext = Object.keys(MIME_TYPES).find((e) => lower.endsWith(e));
   return ext ? MIME_TYPES[ext] : null;
 }
 
@@ -53,12 +54,12 @@ export async function onRequest(context) {
 
   // Try uploads2, fallback to uploads
   const u2Url = `${U2_BASE}/${filePath}`;
-  const u1Url = `${U1_BASE}/${filePath}`;
+  const result2 = await fetchWithHeaders(u2Url, filePath).catch(() => null);
+  if (result2) return result2;
 
-  for (const url of [u2Url, u1Url]) {
-    const result = await fetchWithHeaders(url, filePath).catch(() => null);
-    if (result) return result;
-  }
+  const u1Url = `${U1_BASE}/${filePath}`;
+  const result1 = await fetchWithHeaders(u1Url, filePath).catch(() => null);
+  if (result1) return result1;
 
   return new Response('404 Not Found', { status: 404 });
 }

@@ -39,46 +39,9 @@
       z-index: 100;
     }
 
-    /*──── Top bar ────*/
-    #top-bar {
-      position: fixed; top: 0; left: 0; right: 0; height: 56px;
-      background: rgba(245,237,224,.92); backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border-bottom: 1px solid var(--cream);
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 0 20px; z-index: 50;
-      transition: opacity .35s ease, transform .35s ease;
-    }
-    #top-bar.hidden {
-      opacity: 0; transform: translateY(-100%); pointer-events: none;
-    }
-    .bar-left, .bar-right { display: flex; align-items: center; gap: 12px; }
-    #title {
-      font-size: 15px; font-weight: 600; color: var(--text);
-      max-width: 60vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-    }
-
-    /*──── Buttons ────*/
-    .btn {
-      display: inline-flex; align-items: center; gap: 6px;
-      padding: 7px 14px; border-radius: var(--radius); border: 1px solid var(--cream);
-      background: var(--ivory-light); color: var(--text);
-      font-size: 13px; font-weight: 500; cursor: pointer;
-      text-decoration: none; transition: all .2s;
-      white-space: nowrap;
-    }
-    .btn:hover { background: var(--cream); border-color: var(--kasavu); }
-    .btn:focus-visible { outline: 2px solid var(--kasavu); outline-offset: 2px; }
-    .btn--primary {
-      background: var(--green); color: #fff; border-color: var(--green);
-    }
-    .btn--primary:hover { background: var(--green-dark); }
-
-    .btn svg { width: 16px; height: 16px; flex-shrink: 0; }
-
     /*──── Embed area ────*/
     #embed-wrap {
-      position: fixed; top: 56px; left: 0; right: 0; bottom: 0;
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
       background: #fff;
     }
     #pdf-embed {
@@ -109,31 +72,10 @@
     #error-state h2 { font-size: 18px; margin-bottom: 8px; color: var(--charcoal); }
     #error-state p { color: var(--muted); font-size: 14px; max-width: 320px; }
 
-    @media (max-width: 600px) {
-      #top-bar { height: 48px; padding: 0 12px; }
-      #title { font-size: 13px; max-width: 40vw; }
-      .btn { padding: 5px 10px; font-size: 12px; }
-      #embed-wrap { top: 48px; }
-    }
+
   </style>
 </head>
 <body>
-
-  <div id="top-bar">
-    <div class="bar-left">
-      <button class="btn" onclick="history.back()" aria-label="Go back">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-        Back
-      </button>
-      <span id="title">Textbook</span>
-    </div>
-    <div class="bar-right">
-      <a id="download-link" class="btn btn--primary" href="#" download aria-label="Download PDF" style="display:none">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-        Download
-      </a>
-    </div>
-  </div>
 
   <div id="loading-state">
     <div class="spinner"></div>
@@ -154,33 +96,12 @@
   var pdfUrl = params.get('url');
   var title = params.get('title') || 'Textbook';
 
-  // Direct Kerala CDN base for downloads (viewing must go through proxy — CSP blocks direct embed)
-  var KERALA_BASE = 'https://samagra.kite.kerala.gov.in/files/samagra-resource/uploads2/tbookscmq/';
-
-  var topBar = document.getElementById('top-bar');
   var loadingEl = document.getElementById('loading-state');
   var errorEl = document.getElementById('error-state');
   var errorText = document.getElementById('error-text');
-  var titleEl = document.getElementById('title');
-  var downloadLink = document.getElementById('download-link');
   var pdfEmbed = document.getElementById('pdf-embed');
 
   document.title = title + ' \u2014 Samagra';
-  titleEl.textContent = title;
-
-  /* Top bar auto-hide */
-  var HIDE_DELAY = 4000;
-  var hideTimer = null;
-  function showBar() {
-    topBar.classList.remove('hidden');
-    clearTimeout(hideTimer);
-    hideTimer = setTimeout(function() { topBar.classList.add('hidden'); }, HIDE_DELAY);
-  }
-  document.addEventListener('mousemove', showBar);
-  document.addEventListener('touchstart', showBar);
-  topBar.addEventListener('mouseenter', function() { clearTimeout(hideTimer); topBar.classList.remove('hidden'); });
-  topBar.addEventListener('mouseleave', function() { clearTimeout(hideTimer); hideTimer = setTimeout(function() { topBar.classList.add('hidden'); }, HIDE_DELAY); });
-  hideTimer = setTimeout(function() { topBar.classList.add('hidden'); }, HIDE_DELAY);
 
   /* Keyboard */
   document.addEventListener('keydown', function(e) {
@@ -192,24 +113,24 @@
     errorEl.style.display = 'block';
     errorText.textContent = 'No PDF URL provided.';
   } else {
-    // Embed must use the proxy — it strips X-Frame-Options and sets Content-Disposition: inline
+    // Security: only allow URLs starting with /files/ (our proxy path)
     var decoded = decodeURIComponent(pdfUrl);
-    pdfEmbed.src = decoded;
+    if (!/^\/files\//.test(decoded)) {
+      loadingEl.style.display = 'none';
+      errorEl.style.display = 'block';
+      errorText.textContent = 'Invalid PDF URL.';
+    } else {
+      pdfEmbed.src = decoded;
 
-    // Download uses direct Kerala CDN (no CSP issues for downloads)
-    // Preserve full directory path after /files/, not just filename
-    var dlPath = decoded.replace(/^\/files\//, '');
-    downloadLink.href = KERALA_BASE + dlPath;
-    downloadLink.style.display = 'inline-flex';
-
-    /* Hide loading when embed loads, or after 15s fallback */
-    var loaded = false;
-    pdfEmbed.addEventListener('load', function() {
-      if (!loaded) { loaded = true; loadingEl.style.display = 'none'; }
-    });
-    setTimeout(function() {
-      if (!loaded) { loaded = true; loadingEl.style.display = 'none'; }
-    }, 15000);
+      /* Hide loading when embed loads, or after 15s fallback */
+      var loaded = false;
+      pdfEmbed.addEventListener('load', function() {
+        if (!loaded) { loaded = true; loadingEl.style.display = 'none'; }
+      });
+      setTimeout(function() {
+        if (!loaded) { loaded = true; loadingEl.style.display = 'none'; }
+      }, 15000);
+    }
   }
 </script>
 </body>
