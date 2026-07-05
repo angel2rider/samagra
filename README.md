@@ -71,8 +71,7 @@ npm run deploy
 | `website/migrations/` | D1 SQL schema (legacy; the running API uses a live Kerala proxy, not D1) |
 | `functions/api/` | Cloudflare Pages Function for `/api/textbooks` and `/api/stats` |
 | `functions/files/` | Cloudflare Pages Function for `/files/*` — Kerala CDN proxy with CSP stripped |
-| `scripts/` | Debug & measurement scripts (probe Kerala API, leak checks, D1 verifier, etc.) |
-| `config.js` | Shared constants — medium IDs, class range, API base, CDN limits |
+| `config.js` | Mediums/classes catalog and the Kerala API base path |
 | `wrangler.toml` | Cloudflare Pages project name + build-output dir |
 | `package.json` | Root scripts (`dev`, `build`, `deploy`) |
 
