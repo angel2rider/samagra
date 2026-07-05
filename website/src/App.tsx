@@ -267,12 +267,11 @@ export default function App() {
           )}
 
           {!isLoading && !error && filteredBooks.length > 0 && (
-            <div className="card-grid" role="list" aria-label="Textbooks">
+            <ul className="card-grid" aria-label="Textbooks">
               {filteredBooks.map((book: Textbook, i: number) => (
-                <article
+                <li
                   key={book.id}
                   className="card"
-                  role="listitem"
                   tabIndex={0}
                   style={{ animationDelay: `${600 + Math.min(i * 50, 500)}ms` }}
                   onClick={() => (window.location.href = viewerUrl(book))}
@@ -329,9 +328,9 @@ export default function App() {
                       </svg>
                     </a>
                   </div>
-                </article>
+                </li>
               ))}
-            </div>
+            </ul>
           )}
         </div>
       </main>

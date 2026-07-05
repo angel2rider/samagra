@@ -1,0 +1,20 @@
+# Samagra Textbooks
+
+> Free digital library of SCERT Kerala textbooks — an unofficial mirror of the Samagra KITE platform.
+
+## About
+
+Browse, preview, and download SCERT Kerala textbooks across all mediums (Malayalam, English, Tamil, Kannada, etc.), classes (1–12), and subjects. This is an unofficial mirror of [Samagra KITE Kerala](https://samagra.kite.kerala.gov.in/).
+
+## Links
+
+- [Home](https://samagra.msedge.lol/) — Browse textbooks by medium, class, and subject
+- [API: Textbooks](https://samagra.msedge.lol/api/textbooks?medium=1&class=1) — JSON API for textbook catalog
+- [API: Stats](https://samagra.msedge.lol/api/stats) — JSON API for total textbook count
+- [GitHub Repository](https://github.com/angel2rider/samagra) — Source code
+
+## Technical Notes
+
+- Built with React + TypeScript + Vite
+- Hosted on Cloudflare Pages
+- Served from `samagra.msedge.lol`
