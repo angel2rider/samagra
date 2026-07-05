@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://samagra-textbooks.pages.dev/sitemap.xml

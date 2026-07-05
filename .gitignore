@@ -1,0 +1,49 @@
+# Dependencies
+node_modules/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# VPS-only working dirs (downloaded files, scripts run on the VPS)
+vps/
+*__GITHUB__*
+
+# Cloudflare Pages build artifacts
+website/public/pdfs/
+website/public/data/
+dist/
+build/
+.wrangler/
+
+# Environment & secrets
+.env
+.env.local
+.env.production
+.env.development
+*.key
+*.pem
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Dev artifacts & debug snapshots — never commit
+snapshot-*.txt
+screenshot-*.png
+*.zip
+_reference/
+docs/historical/
+
+# Internal agent context (VPS IPs, credentials, history)
+# Kept locally; not part of the public source tree.
+CONTEXT.md
+PROJECT_STATE.md

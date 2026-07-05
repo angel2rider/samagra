@@ -1,0 +1,11 @@
+{
+  "name": "samagra-textbooks",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Unofficial mirror of SCERT Kerala Samagra textbooks with a radial curriculum selector.",
+  "scripts": {
+    "dev": "cd website && npm run dev",
+    "build": "cd website && npm run build",
+    "deploy": "cd website && npm run build && cd .. && ./website/node_modules/.bin/wrangler pages deploy"
+  }
+}

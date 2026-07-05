@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Samagra Textbooks — SCERT Kerala Digital Library</title>
+  <meta name="description" content="Browse SCERT Kerala textbooks online. Free digital library of the Samagra KITE platform." />
+  <meta property="og:title" content="Samagra Textbooks — SCERT Kerala Digital Library" />
+  <meta property="og:description" content="Browse SCERT Kerala textbooks online. Free digital library." />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="robots" content="index, follow" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="preconnect" href="https://samagra.kite.kerala.gov.in" />
+  <link rel="dns-prefetch" href="https://samagra.kite.kerala.gov.in" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="icon" href="/logo.png" />
+  <!-- Preload the initial API call so it starts while JS parses (default: Malayalam Class 1) -->
+  <link rel="preload" as="fetch" href="/api/textbooks?medium=1&class=1" crossorigin="anonymous" />
+</head>
+<body>
+  <!-- Instant splash – shown before JS/React loads -->
+  <div id="splash-html" class="splash-html" aria-hidden="true">
+    <img src="/logo.webp" alt="Samagra Textbooks" class="splash-logo" width="420" height="280" fetchpriority="high"
+         onerror="this.onerror=null;this.src='/logo.png'" />
+  </div>
+
+  <div id="root"></div>
+  <script type="module" src="/src/main.tsx"></script>
+</body>
+</html>
