@@ -111,6 +111,9 @@ a { color: inherit; text-decoration: none; }
   flex-direction: column;
   align-items: center;
 }
+@media (max-width: 767px) {
+  .kasavu-border { display: none; }
+}
 .kasavu-border__gold {
   width: 2px;
   flex: 1;
@@ -725,6 +728,23 @@ main {
 .ms-pill:hover {
   border-color: var(--kasavu);
   box-shadow: 0 0 12px var(--accent-glow);
+}
+.ms-pill--editable {
+  padding: 7px 10px;
+}
+.ms-pill--editable:hover {
+  background: var(--cream);
+}
+.ms-pill-edit {
+  width: 12px;
+  height: 12px;
+  margin-left: 2px;
+  opacity: 0.5;
+  flex-shrink: 0;
+}
+.ms-pill--editable:hover .ms-pill-edit {
+  opacity: 1;
+  color: var(--kasavu);
 }
 .ms-pill-dot {
   width: 7px;

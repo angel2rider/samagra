@@ -80,30 +80,33 @@ export default function App() {
       setSubjectsApi(data.subjects.map((s) => s.subjectName))
       setIsLoading(false)
 
-      // Prefetch adjacent class data so wheel-spinning feels instant
-      // Clean up previous prefetch links first to avoid DOM leaks
-      const prev = document.querySelectorAll('link[data-prefetch-adjacent]')
-      prev.forEach((l) => l.remove())
-      const currentClass = parseInt(cls)
-      const nextClass = Math.min(currentClass + 1, 12)
-      const prevClass = Math.max(currentClass - 1, 1)
-      for (const c of [nextClass, prevClass]) {
-        if (c !== currentClass) {
-          const url = `/api/textbooks?medium=${getMediumId(lang)}&class=${c}`
-          const link = document.createElement('link')
-          link.rel = 'prefetch'
-          link.href = url
-          link.as = 'fetch'
-          link.crossOrigin = 'anonymous'
-          link.dataset.prefetchAdjacent = 'true'
-          document.head.appendChild(link)
+      // Prefetch adjacent class data on desktop so wheel-spinning feels instant.
+      // Skip on mobile to avoid console warnings and save bandwidth.
+      if (!isMobile) {
+        // Clean up previous prefetch links first to avoid DOM leaks
+        const prev = document.querySelectorAll('link[data-prefetch-adjacent]')
+        prev.forEach((l) => l.remove())
+        const currentClass = parseInt(cls)
+        const nextClass = Math.min(currentClass + 1, 12)
+        const prevClass = Math.max(currentClass - 1, 1)
+        for (const c of [nextClass, prevClass]) {
+          if (c !== currentClass) {
+            const url = `/api/textbooks?medium=${getMediumId(lang)}&class=${c}`
+            const link = document.createElement('link')
+            link.rel = 'prefetch'
+            link.href = url
+            link.as = 'fetch'
+            link.crossOrigin = 'anonymous'
+            link.dataset.prefetchAdjacent = 'true'
+            document.head.appendChild(link)
+          }
         }
       }
     } catch (err: any) {
       setError(err.message)
       setIsLoading(false)
     }
-  }, [])
+  }, [isMobile])
 
   // If the user is returning via browser back button, sessionStorage holds
   // their previous selection — fetch it immediately so the grid is populated
@@ -213,11 +216,13 @@ export default function App() {
               </span>
             </a>
           </div>
-          <div className="nav-right">
-            <span className="stats-pill" aria-live="polite">
-              {stats || <span className="pulse-dot" />}
-            </span>
-          </div>
+          {!isMobile && (
+            <div className="nav-right">
+              <span className="stats-pill" aria-live="polite">
+                {stats || <span className="pulse-dot" />}
+              </span>
+            </div>
+          )}
         </div>
       </nav>
 
