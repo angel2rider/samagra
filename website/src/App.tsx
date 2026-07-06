@@ -46,7 +46,11 @@ export default function App() {
   selClassRef.current = selClass
 
   const fetchData = useCallback(async (lang: string, cls: string) => {
-    setIsLoading(true)
+    // Only show skeletons on first-ever fetch. Subsequent fetches keep
+    // showing the old grid for a seamless transition.
+    if (!firstFetchDone.current) {
+      setIsLoading(true)
+    }
     setError(null)
     try {
       const data = await fetchTextbooks(getMediumId(lang), getClassId(cls))
@@ -233,7 +237,7 @@ export default function App() {
             </span>
           </div>
 
-          {isLoading && (
+          {isLoading && firstFetchDone.current === false && (
             <div className="skeleton-grid" aria-hidden="true">
               {Array.from({ length: 12 }).map((_, i) => (
                 <div key={i} className="skel" />

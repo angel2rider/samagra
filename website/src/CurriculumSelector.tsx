@@ -184,13 +184,14 @@ function useRingAnimation(
         if (ba === undefined) return
         const angle = ba + lr
         const rad = angle * Math.PI / 180
-        const x = langRadius * Math.cos(rad)
-        const y = langRadius * Math.sin(rad)
+        // Round to 1dp so spring micro-oscillations don't trigger DOM writes
+        const x = Math.round(langRadius * Math.cos(rad) * 10) / 10
+        const y = Math.round(langRadius * Math.sin(rad) * 10) / 10
         const t = `translate(${x}px, ${y}px)`
         const a = ((angle % 360) + 360) % 360
         const dist = Math.min(a, 360 - a)
-        const sVal = scaleForDist(dist)
-        const oVal = opacityForDist(dist)
+        const sVal = Math.round(scaleForDist(dist) * 100) / 100
+        const oVal = Math.round(opacityForDist(dist) * 100) / 100
         const s = `scale(${sVal})`
         const o = String(oVal)
         const prev = cache.get(el)
@@ -209,13 +210,13 @@ function useRingAnimation(
         if (ba === undefined) return
         const angle = ba + cr
         const rad = angle * Math.PI / 180
-        const x = classRadius * Math.cos(rad)
-        const y = classRadius * Math.sin(rad)
+        const x = Math.round(classRadius * Math.cos(rad) * 10) / 10
+        const y = Math.round(classRadius * Math.sin(rad) * 10) / 10
         const t = `translate(${x}px, ${y}px)`
         const a = ((angle % 360) + 360) % 360
         const dist = Math.min(a, 360 - a)
-        const sVal = scaleForDist(dist)
-        const oVal = opacityForDist(dist)
+        const sVal = Math.round(scaleForDist(dist) * 100) / 100
+        const oVal = Math.round(opacityForDist(dist) * 100) / 100
         const s = `scale(${sVal})`
         const o = String(oVal)
         const prev = cache.get(el)
@@ -234,13 +235,13 @@ function useRingAnimation(
         if (ba === undefined) return
         const angle = ba + sr
         const rad = angle * Math.PI / 180
-        const x = subjRadius * Math.cos(rad)
-        const y = subjRadius * Math.sin(rad)
+        const x = Math.round(subjRadius * Math.cos(rad) * 10) / 10
+        const y = Math.round(subjRadius * Math.sin(rad) * 10) / 10
         const t = `translate(${x}px, ${y}px)`
         const a = ((angle % 360) + 360) % 360
         const dist = Math.min(a, 360 - a)
-        const sVal = scaleForDist(dist)
-        const oVal = opacityForDist(dist)
+        const sVal = Math.round(scaleForDist(dist) * 100) / 100
+        const oVal = Math.round(opacityForDist(dist) * 100) / 100
         const s = `scale(${sVal})`
         const o = String(oVal)
         const prev = cache.get(el)
