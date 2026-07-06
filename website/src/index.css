@@ -1155,7 +1155,7 @@ main {
     padding: 10px 0 4px;
   }
   .books-panel {
-    border-radius: var(--radius) var(--radius) 0 0;
+    border-radius: var(--radius);
     margin-top: 0;
     position: relative;
     z-index: 2;
