@@ -124,10 +124,14 @@ export default function App() {
     }
   }, [])
 
-  // Hide the HTML splash once data loads and the wheel has initialised
+  // Track whether the first fetch has completed (desktop) or the mobile flow
+  // has started. Moved above the effects that reference it.
   const firstFetchDone = useRef(false)
+
+  // Hide the HTML splash once data loads (desktop) or immediately on mobile
+  // since the mobile selector handles its own loading states.
   useEffect(() => {
-    if (!isLoading && firstFetchDone.current) {
+    if (isMobile || (!isLoading && firstFetchDone.current)) {
       const el = document.getElementById('splash-html')
       if (!el) return
       const elapsed = Date.now() - mountTime.current
@@ -135,7 +139,7 @@ export default function App() {
       const t = setTimeout(() => el.classList.add('splash-html--hidden'), delay)
       return () => clearTimeout(t)
     }
-  }, [isLoading])
+  }, [isLoading, isMobile])
 
   // Wheel → app state. The wheel drives everything — no initial fetch, no skip guards.
   const lastFetchKeyRef = useRef<string>('')
