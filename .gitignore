@@ -12,7 +12,6 @@ vps/
 
 # Cloudflare Pages build artifacts
 website/public/pdfs/
-website/public/data/
 dist/
 build/
 .wrangler/

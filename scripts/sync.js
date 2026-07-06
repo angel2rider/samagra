@@ -30,6 +30,7 @@ const KERALA_API = 'https://samagra.kite.kerala.gov.in/v2/api/public/getSubjectT
 const CDN_U2 = 'https://samagra.kite.kerala.gov.in/files/samagra-resource/uploads2/tbookscmq';
 const CDN_U1 = 'https://samagra.kite.kerala.gov.in/files/samagra-resource/uploads/tbookscmq';
 const THUMBS_DIR = path.resolve(__dirname, '../website/public/thumbnails');
+const DATA_DIR = path.resolve(__dirname, '../website/public/data/textbooks');
 const KV_NAMESPACE_ID = 'b87a8c8dd12e41ecbffab693e17232be';
 const KV_BINDING = 'TEXTBOOKS_KV';
 const KV_TTL = 60 * 60 * 24 * 7; // 1 week
@@ -212,6 +213,14 @@ function uploadToKV(bulkEntries) {
   }
 }
 
+/** Write textbook metadata as static JSON files for the Pages Function to fetch */
+function writeStaticJSON(mediumId, classId, data) {
+  const dir = path.join(DATA_DIR, String(mediumId));
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  const filePath = path.join(dir, `${classId}.json`);
+  fs.writeFileSync(filePath, JSON.stringify(data));
+}
+
 // ── Entry point ───────────────────────────────────────────────────────
 
 async function main() {
@@ -247,7 +256,7 @@ async function main() {
     console.log(`  Progress: ${done}/${combos.length} combos processed`);
   }
 
-  // Build KV bulk entries
+  // Build KV bulk entries and write static JSON files
   const bulkEntries = [];
   for (const { mediumId, classId, data } of results) {
     bulkEntries.push({
@@ -255,6 +264,8 @@ async function main() {
       value: JSON.stringify(data),
       expiration_ttl: KV_TTL,
     });
+    // Also write as static JSON for the Pages Function to fetch
+    writeStaticJSON(mediumId, classId, data);
   }
 
   // Upload to KV
@@ -262,12 +273,12 @@ async function main() {
     uploadToKV(bulkEntries);
   }
 
-  // Summary
   console.log('\n=== Sync Complete ===');
   console.log(`  Combos fetched:  ${results.length}/${combos.length}`);
   console.log(`  Thumbnails:      ${downloadedThumbs} downloaded, ${skippedThumbs} skipped (cached), ${failedThumbs} failed`);
   console.log(`  KV keys written: ${bulkEntries.length}`);
-  console.log('\nNext step: commit website/public/thumbnails/ and deploy.');
+  console.log(`  Static JSON:     website/public/data/textbooks/ (${results.length} files)`);
+  console.log('\nNext step: commit website/public/thumbnails/ and website/public/data/ then deploy.');
 }
 
 main().catch((err) => {
