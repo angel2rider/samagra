@@ -579,7 +579,7 @@ export function CurriculumSelector({
           <div className="cs-dial-spotlight" />
 
           <div className="cs-dial-mask" style={{ contain: 'layout style paint' }}>
-            <div ref={anchorRef} className="cs-anchor" style={{ contain: 'layout style paint' }}>
+            <div ref={anchorRef} className="cs-anchor" style={{ contain: 'layout style' }}>
               {!mounted ? null : (
                 <>
                   {/* subjects (outer) */}
