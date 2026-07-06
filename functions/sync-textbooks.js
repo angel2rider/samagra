@@ -1,19 +1,27 @@
 // functions/sync-textbooks.js
 //
-// Weekly cron-triggered worker that fetches all 48 (medium × class) textbook
+// HTTP-triggered worker that fetches all 48 (medium × class) textbook
 // combos from Kerala's API, culls orphan subjects, and writes the unfiltered
 // data to KV with a 1-week TTL.
 //
-// Also callable via HTTP GET for manual one-off syncs or status checks.
+// Callable via HTTP GET:
+//   GET /sync-textbooks              → sync all 48 combos
+//   GET /sync-textbooks?medium=2&class=12 → sync single combo
 //
-// KV keys:  textbooks:{mediumId}:{classId}
-// KV value: { ts: ISO string, textbooks: Textbook[], subjects: Subject[] }
+// Thumbnails are NOT downloaded here — use scripts/sync.js for that.
+// This worker stores thumbUrl pointing to /files/... (proxied from Kerala CDN).
+// scripts/sync.js overwrites with /thumbnails/... after local download.
 
 const KERALA = 'https://samagra.kite.kerala.gov.in/v2/api/public/getSubjectTextbooks';
 const KV_TTL = 60 * 60 * 24 * 7; // 1 week
 const CONCURRENCY = 8;           // parallel fetches to Kerala API
 
 function nowISO() { return new Date().toISOString(); }
+
+/** Sanitise a relative path for use in URLs */
+function cleanRelPath(raw) {
+  return (raw || '').replace(/^\/+/, '');
+}
 
 /**
  * Fetch one (medium, class) combo, transform, return { mediumId, classId, data }.
@@ -56,8 +64,8 @@ async function fetchOne(mediumId, classId) {
       if (!t) continue;
       const subj = subjectsById.get(Number(t.subjectId));
       const sn = subj ? subj.subjectName : null;
-      const pdfRel = (t.chapterPdfUrl || '').replace(/^\/+/, '');
-      const thumbRel = (t.chapterThumbUrl || '').replace(/^\/+/, '');
+      const pdfRel = cleanRelPath(t.chapterPdfUrl);
+      const thumbRel = cleanRelPath(t.chapterThumbUrl);
       textbooks.push({
         id: Number(t.id),
         chapterName: t.chapterName ?? null,
@@ -107,7 +115,6 @@ async function batchRun(tasks, concurrency) {
 
 export async function onRequest(context) {
   const { request, env } = context;
-  const isCron = !!context.cron;
 
   // Generate all 48 combos: 4 mediums × 12 classes
   const combos = [];
@@ -134,7 +141,7 @@ export async function onRequest(context) {
   }
 
   const started = nowISO();
-  const results = await batchRun(tasks, isCron ? CONCURRENCY : 4);
+  const results = await batchRun(tasks, CONCURRENCY);
 
   // Write each result to KV
   let written = 0, failed = 0;
@@ -153,7 +160,7 @@ export async function onRequest(context) {
   const status = {
     started,
     finished: nowISO(),
-    trigger: isCron ? 'cron' : 'http',
+    trigger: 'http',
     totalCombos: tasks.length,
     fetched: results.length,
     writtenKV: written,

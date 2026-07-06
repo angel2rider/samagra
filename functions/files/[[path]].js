@@ -30,7 +30,6 @@ async function fetchWithHeaders(url, filePath) {
   const mime = getMimeType(filePath);
   if (mime) headers.set('content-type', mime);
   headers.set('access-control-allow-origin', '*');
-  // Images rarely change — cache for 1 year. PDFs get 1 day.
   const isImage = /\.(png|jpg|jpeg|gif|webp)$/i.test(filePath);
   headers.set('cache-control', isImage
     ? 'public, max-age=31536000, immutable'
@@ -39,11 +38,7 @@ async function fetchWithHeaders(url, filePath) {
   if (filePath.endsWith('.pdf') && headers.has('content-disposition')) {
     headers.set('content-disposition', 'inline');
   }
-  return new Response(response.body, {
-    status: response.status,
-    statusText: response.statusText,
-    headers,
-  });
+  return new Response(response.body, { status: response.status, headers });
 }
 
 // 1×1 transparent PNG — returned instead of 404 for missing thumbnails

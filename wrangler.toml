@@ -2,14 +2,14 @@ name = "samagra"
 pages_build_output_dir = "./website/dist"
 compatibility_date = "2025-07-02"
 
-# === KV namespace for textbook metadata cache ===
-# After creating the KV namespace in the Cloudflare Dashboard:
-#   1. Uncomment the [[kv_namespaces]] block below
-#   2. Replace the id with your real namespace id
-#   3. In Dashboard: Pages → samagra → Settings → Functions → Cron Triggers
-#      Pattern: 0 0 * * 0   Route: /sync-textbooks
-#   4. Redeploy
-#
-# [[kv_namespaces]]
-# binding = "TEXTBOOKS_KV"
-# id = "YOUR_KV_NAMESPACE_ID"
+# KV namespace for textbook metadata cache.
+# Created via: npx wrangler kv namespace create TEXTBOOKS_KV
+[[kv_namespaces]]
+binding = "TEXTBOOKS_KV"
+id = "b87a8c8dd12e41ecbffab693e17232be"
+
+# Cron is NOT supported in Cloudflare Pages wrangler.toml.
+# To trigger a manual metadata sync, run:
+#   node scripts/sync.js
+# Or hit the deployed sync endpoint:
+#   curl https://your-site.pages.dev/sync-textbooks
