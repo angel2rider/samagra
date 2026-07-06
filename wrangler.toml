@@ -9,7 +9,8 @@ compatibility_date = "2025-07-02"
 binding = "TEXTBOOKS_KV"
 id = "TEXTBOOKS_KV_PLACEHOLDER"
 
-# Weekly cron trigger: sync textbook metadata from Kerala API to KV.
-# Runs every Sunday at 00:00 UTC. Adjust schedule as needed.
-[triggers]
-crons = ["0 0 * * 0"]
+# Cron triggers are NOT supported in wrangler.toml for Pages projects.
+# Configure in the Cloudflare Dashboard:
+#   Pages → samagra → Settings → Functions → Cron Triggers
+#   Pattern: 0 0 * * 0  (Sunday midnight UTC)
+#   Route: /sync-textbooks
