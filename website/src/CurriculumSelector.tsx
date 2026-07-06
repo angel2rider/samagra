@@ -162,8 +162,16 @@ function useRingAnimation(
     if (el) subjRefs.current.set(i, el); else subjRefs.current.delete(i)
   }, [])
 
+  // Cache last-written values per element. Prevents writing unchanged
+  // styles every frame, which: (a) avoids triggering MutationObservers
+  // in browser extensions that cause "runtime.lastError" noise, and
+  // (b) reduces compositor repaint work when the wheel is at rest.
+  const elCache = useRef<WeakMap<HTMLDivElement, { t: string; s: string; o: string }>>(new WeakMap())
+
   useEffect(() => {
     let running = true
+    const cache = elCache.current
+
     function tick() {
       if (!running) return
       const lr = langRot.get()
@@ -178,14 +186,21 @@ function useRingAnimation(
         const rad = angle * Math.PI / 180
         const x = langRadius * Math.cos(rad)
         const y = langRadius * Math.sin(rad)
-        el.style.transform = `translate(${x}px, ${y}px)`
+        const t = `translate(${x}px, ${y}px)`
         const a = ((angle % 360) + 360) % 360
         const dist = Math.min(a, 360 - a)
+        const sVal = scaleForDist(dist)
+        const oVal = opacityForDist(dist)
+        const s = `scale(${sVal})`
+        const o = String(oVal)
+        const prev = cache.get(el)
+        if (!prev || prev.t !== t) { el.style.transform = t }
         const btn = el.firstChild?.firstChild as HTMLElement | null
         if (btn) {
-          btn.style.transform = `scale(${scaleForDist(dist)})`
-          btn.style.opacity = String(opacityForDist(dist))
+          if (!prev || prev.s !== s) btn.style.transform = s
+          if (!prev || prev.o !== o) btn.style.opacity = o
         }
+        cache.set(el, { t, s, o })
       })
 
       // --- Classes ring ---
@@ -196,14 +211,21 @@ function useRingAnimation(
         const rad = angle * Math.PI / 180
         const x = classRadius * Math.cos(rad)
         const y = classRadius * Math.sin(rad)
-        el.style.transform = `translate(${x}px, ${y}px)`
+        const t = `translate(${x}px, ${y}px)`
         const a = ((angle % 360) + 360) % 360
         const dist = Math.min(a, 360 - a)
+        const sVal = scaleForDist(dist)
+        const oVal = opacityForDist(dist)
+        const s = `scale(${sVal})`
+        const o = String(oVal)
+        const prev = cache.get(el)
+        if (!prev || prev.t !== t) { el.style.transform = t }
         const btn = el.firstChild?.firstChild as HTMLElement | null
         if (btn) {
-          btn.style.transform = `scale(${scaleForDist(dist)})`
-          btn.style.opacity = String(opacityForDist(dist))
+          if (!prev || prev.s !== s) btn.style.transform = s
+          if (!prev || prev.o !== o) btn.style.opacity = o
         }
+        cache.set(el, { t, s, o })
       })
 
       // --- Subjects ring ---
@@ -214,14 +236,21 @@ function useRingAnimation(
         const rad = angle * Math.PI / 180
         const x = subjRadius * Math.cos(rad)
         const y = subjRadius * Math.sin(rad)
-        el.style.transform = `translate(${x}px, ${y}px)`
+        const t = `translate(${x}px, ${y}px)`
         const a = ((angle % 360) + 360) % 360
         const dist = Math.min(a, 360 - a)
+        const sVal = scaleForDist(dist)
+        const oVal = opacityForDist(dist)
+        const s = `scale(${sVal})`
+        const o = String(oVal)
+        const prev = cache.get(el)
+        if (!prev || prev.t !== t) { el.style.transform = t }
         const btn = el.firstChild?.firstChild as HTMLElement | null
         if (btn) {
-          btn.style.transform = `scale(${scaleForDist(dist)})`
-          btn.style.opacity = String(opacityForDist(dist))
+          if (!prev || prev.s !== s) btn.style.transform = s
+          if (!prev || prev.o !== o) btn.style.opacity = o
         }
+        cache.set(el, { t, s, o })
       })
 
       requestAnimationFrame(tick)
