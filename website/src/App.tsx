@@ -22,20 +22,55 @@ function readSaved(): { lang: string; cls: string; subj: string | null } {
   }
 }
 
-/** Hook to detect mobile breakpoint. Matches the CSS @media (max-width: 767px). */
-function useMediaQuery(query: string): boolean {
-  const [matches, setMatches] = useState(() => {
+/**
+ * Robust mobile detection using capability checks rather than just viewport width.
+ *
+ * Strategy (in order of reliability):
+ * 1. CSS `pointer: coarse` + `hover: none` — primary input is a finger, no hover.
+ *    This correctly identifies phones and tablets in any orientation, and
+ *    excludes desktops even when a touchscreen is present (fine pointer wins).
+ * 2. `navigator.userAgentData.mobile` — modern Client Hints API, very accurate.
+ *
+ * We deliberately avoid width-based heuristics (e.g. max-width: 767px) because
+ * they produce false positives when a desktop browser is resized narrow, and
+ * false negatives when a large tablet (e.g. iPad Pro 12.9″ landscape) exceeds
+ * the breakpoint.
+ */
+function useIsMobile(): boolean {
+  const [isMobile, setIsMobile] = useState(() => {
     if (typeof window === 'undefined') return false
-    return window.matchMedia(query).matches
+    const pointerCoarse = window.matchMedia('(pointer: coarse)').matches
+    const hoverNone = window.matchMedia('(hover: none)').matches
+    const userAgentMobile =
+      typeof navigator !== 'undefined' &&
+      'userAgentData' in navigator &&
+      (navigator as any).userAgentData?.mobile === true
+    return (pointerCoarse && hoverNone) || userAgentMobile
   })
+
   useEffect(() => {
-    const m = window.matchMedia(query)
-    setMatches(m.matches)
-    const handler = (e: MediaQueryListEvent) => setMatches(e.matches)
-    m.addEventListener('change', handler)
-    return () => m.removeEventListener('change', handler)
-  }, [query])
-  return matches
+    const m1 = window.matchMedia('(pointer: coarse)')
+    const m2 = window.matchMedia('(hover: none)')
+
+    const handler = () => {
+      const pointerCoarse = m1.matches
+      const hoverNone = m2.matches
+      const userAgentMobile =
+        typeof navigator !== 'undefined' &&
+        'userAgentData' in navigator &&
+        (navigator as any).userAgentData?.mobile === true
+      setIsMobile((pointerCoarse && hoverNone) || userAgentMobile)
+    }
+
+    m1.addEventListener('change', handler)
+    m2.addEventListener('change', handler)
+    return () => {
+      m1.removeEventListener('change', handler)
+      m2.removeEventListener('change', handler)
+    }
+  }, [])
+
+  return isMobile
 }
 
 const CurriculumSelector = lazy(() => import('./CurriculumSelector'))
@@ -62,8 +97,8 @@ export default function App() {
   selLangRef.current = selLang
   selClassRef.current = selClass
 
-  // Mobile/desktop split
-  const isMobile = useMediaQuery('(max-width: 767px)')
+  // Mobile/desktop split — capability-based, not width-based
+  const isMobile = useIsMobile()
   // Track mobile selector step so we can hide the grid until all 3 are chosen
   const [mobileStep, setMobileStep] = useState<'language' | 'class' | 'subject' | 'results'>('language')
 
