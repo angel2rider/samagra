@@ -22,7 +22,24 @@ function readSaved(): { lang: string; cls: string; subj: string | null } {
   }
 }
 
+/** Hook to detect mobile breakpoint. Matches the CSS @media (max-width: 767px). */
+function useMediaQuery(query: string): boolean {
+  const [matches, setMatches] = useState(() => {
+    if (typeof window === 'undefined') return false
+    return window.matchMedia(query).matches
+  })
+  useEffect(() => {
+    const m = window.matchMedia(query)
+    setMatches(m.matches)
+    const handler = (e: MediaQueryListEvent) => setMatches(e.matches)
+    m.addEventListener('change', handler)
+    return () => m.removeEventListener('change', handler)
+  }, [query])
+  return matches
+}
+
 const CurriculumSelector = lazy(() => import('./CurriculumSelector'))
+const MobileSelector = lazy(() => import('./MobileSelector'))
 
 export default function App() {
   // Seed initial display from sessionStorage so subtitle/textbook count
@@ -44,6 +61,11 @@ export default function App() {
   const selClassRef = useRef(saved.current.cls)
   selLangRef.current = selLang
   selClassRef.current = selClass
+
+  // Mobile/desktop split
+  const isMobile = useMediaQuery('(max-width: 767px)')
+  // Track mobile selector step so we can hide the grid until all 3 are chosen
+  const [mobileStep, setMobileStep] = useState<'language' | 'class' | 'subject' | 'results'>('language')
 
   const fetchData = useCallback(async (lang: string, cls: string) => {
     // Only show skeletons on first-ever fetch. Subsequent fetches keep
@@ -198,31 +220,54 @@ export default function App() {
       <main id="main-content">
         <div className="selector-panel">
           <Suspense fallback={<div style={{height:500}} />}>
-            <CurriculumSelector
-              languages={MEDIUMS.map((m) => m.name)}
-              classes={CLASSES.map(String)}
-              subjects={subjectsForWheel}
-              initialSelection={{
-                language: saved.current.lang,
-                classLabel: saved.current.cls,
-                subject: saved.current.subj ?? undefined,
-              }}
-              onChange={(sel) => {
-                // First selection always triggers the initial fetch.
-                // Pre-set lastFetchKeyRef so handleSelectionChange skips the duplicate.
-                if (!firstFetchDone.current) {
-                  firstFetchDone.current = true
-                  const key = `${sel.language}::${sel.classLabel}`
-                  lastFetchKeyRef.current = key
-                  fetchData(sel.language, sel.classLabel)
-                }
-                handleSelectionChange(sel)
-              }}
-            />
+            {isMobile ? (
+              <MobileSelector
+                initialSelection={{
+                  language: saved.current.lang,
+                  classLabel: saved.current.cls,
+                  subject: saved.current.subj ?? undefined,
+                }}
+                onStepChange={(step) => setMobileStep(step)}
+                onChange={(sel) => {
+                  // Mobile only calls onChange when all 3 are selected.
+                  // Always trigger the fetch since this is the first time
+                  // the user has completed the full mobile flow.
+                  if (!firstFetchDone.current) {
+                    firstFetchDone.current = true
+                    const key = `${sel.language}::${sel.classLabel}`
+                    lastFetchKeyRef.current = key
+                    fetchData(sel.language, sel.classLabel)
+                  }
+                  handleSelectionChange(sel)
+                }}
+              />
+            ) : (
+              <CurriculumSelector
+                languages={MEDIUMS.map((m) => m.name)}
+                classes={CLASSES.map(String)}
+                subjects={subjectsForWheel}
+                initialSelection={{
+                  language: saved.current.lang,
+                  classLabel: saved.current.cls,
+                  subject: saved.current.subj ?? undefined,
+                }}
+                onChange={(sel) => {
+                  // First selection always triggers the initial fetch.
+                  // Pre-set lastFetchKeyRef so handleSelectionChange skips the duplicate.
+                  if (!firstFetchDone.current) {
+                    firstFetchDone.current = true
+                    const key = `${sel.language}::${sel.classLabel}`
+                    lastFetchKeyRef.current = key
+                    fetchData(sel.language, sel.classLabel)
+                  }
+                  handleSelectionChange(sel)
+                }}
+              />
+            )}
           </Suspense>
         </div>
 
-        <div className="books-panel">
+        <div className={`books-panel ${isMobile && mobileStep !== 'results' ? 'books-panel--hidden-mobile' : ''}`}>
           <div className="books-panel-header">
             <div>
               <h2 className="books-title">Textbooks</h2>
