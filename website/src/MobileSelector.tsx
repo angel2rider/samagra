@@ -20,7 +20,6 @@ type Direction = 'forward' | 'backward'
 interface MobileSelectorProps {
   onChange?: (selection: CurriculumSelection) => void
   onStepChange?: (step: Step) => void
-  initialSelection?: { language?: string; classLabel?: string; subject?: string }
 }
 
 /* ============================ Spring config ============================ */
@@ -44,11 +43,11 @@ const PILL_SPRING = {
 }
 
 /* ============================ Language data ============================ */
-const LANGUAGE_META: Record<string, { label: string; emoji: string; color: string; bg: string }> = {
-  English:   { label: 'English',   emoji: '🇬🇧', color: '#1a3a5c', bg: '#e8f0f8' },
-  Malayalam: { label: 'മലയാളം',   emoji: '🇮🇳', color: '#1E5631', bg: '#e8f3e8' },
-  Tamil:     { label: 'தமிழ்',     emoji: '🇮🇳', color: '#5c2d1a', bg: '#f5e8e0' },
-  Kannada:   { label: 'ಕನ್ನಡ',    emoji: '🇮🇳', color: '#4a1a5c', bg: '#f0e8f5' },
+const LANGUAGE_META: Record<string, { label: string; initial: string; script: string; color: string; bg: string; gradient: string }> = {
+  English:   { label: 'English',   initial: 'E', script: 'English',   color: '#1a3a5c', bg: '#e8f0f8', gradient: 'linear-gradient(135deg, #e8f0f8 0%, #d0e0f0 100%)' },
+  Malayalam: { label: 'മലയാളം',   initial: 'മ', script: 'Malayalam', color: '#1E5631', bg: '#e8f3e8', gradient: 'linear-gradient(135deg, #e8f3e8 0%, #d0e8d0 100%)' },
+  Tamil:     { label: 'தமிழ்',     initial: 'த', script: 'Tamil',     color: '#5c2d1a', bg: '#f5e8e0', gradient: 'linear-gradient(135deg, #f5e8e0 0%, #ecd8cc 100%)' },
+  Kannada:   { label: 'ಕನ್ನಡ',    initial: 'ಕ', script: 'Kannada',   color: '#4a1a5c', bg: '#f0e8f5', gradient: 'linear-gradient(135deg, #f0e8f5 0%, #e4d8f0 100%)' },
 }
 
 /* ============================ Step title ============================ */
@@ -104,14 +103,13 @@ function SelectionPill({
 export default function MobileSelector({
   onChange,
   onStepChange,
-  initialSelection,
 }: MobileSelectorProps) {
   const [step, setStep] = useState<Step>('language')
   const [direction, setDirection] = useState<Direction>('forward')
 
-  const [language, setLanguage] = useState<string | null>(initialSelection?.language ?? null)
-  const [classLabel, setClassLabel] = useState<string | null>(initialSelection?.classLabel ?? null)
-  const [subject, setSubject] = useState<string | null>(initialSelection?.subject ?? null)
+  const [language, setLanguage] = useState<string | null>(null)
+  const [classLabel, setClassLabel] = useState<string | null>(null)
+  const [subject, setSubject] = useState<string | null>(null)
 
   const [availableSubjects, setAvailableSubjects] = useState<string[]>([])
   const [subjectLoading, setSubjectLoading] = useState(false)
@@ -213,36 +211,17 @@ export default function MobileSelector({
     setStep('subject')
   }, [])
 
-  /* ── Initial fetch if restoring saved state ── */
+  /* ── Mobile always starts fresh at language step ── */
   useEffect(() => {
-    if (initialSelection?.language && initialSelection?.classLabel && !initialSelection?.subject) {
-      // We have lang + class but no subject — jump to subject step and fetch
-      setLanguage(initialSelection.language)
-      setClassLabel(initialSelection.classLabel)
-      setStep('subject')
-      setSubjectLoading(true)
-      fetchTextbooks(getMediumId(initialSelection.language), getClassId(initialSelection.classLabel))
-        .then((data) => {
-          setAvailableSubjects(data.subjects.map((s) => s.subjectName))
-          setSubjectLoading(false)
-        })
-        .catch((err) => {
-          setSubjectError(err.message || 'Failed to load subjects')
-          setSubjectLoading(false)
-        })
-    } else if (initialSelection?.language && initialSelection?.classLabel && initialSelection?.subject) {
-      // Fully restored — skip to results and notify parent so grid populates
-      setLanguage(initialSelection.language)
-      setClassLabel(initialSelection.classLabel)
-      setSubject(initialSelection.subject)
-      hasCompleted.current = true
-      setStep('results')
-      onChange?.({
-        language: initialSelection.language,
-        classLabel: initialSelection.classLabel,
-        subject: initialSelection.subject,
-      })
-    }
+    // Ignore any saved sessionStorage state on mobile — always start the flow fresh.
+    // This ensures a consistent native-app onboarding experience.
+    setLanguage(null)
+    setClassLabel(null)
+    setSubject(null)
+    setAvailableSubjects([])
+    setSubjectQuery('')
+    setStep('language')
+    hasCompleted.current = false
   }, [])
 
   /* ── Filtered subjects ── */
@@ -274,7 +253,7 @@ export default function MobileSelector({
   const cardContainerVariants = {
     hidden: {},
     show: {
-      transition: { staggerChildren: 0.04, delayChildren: 0.08 },
+      transition: { staggerChildren: 0.04, delayChildren: 0.05 },
     },
   }
 
@@ -393,15 +372,23 @@ export default function MobileSelector({
                       type="button"
                       className={`ms-lang-card ${isSel ? 'ms-lang-card--selected' : ''}`}
                       onClick={() => selectLanguage(m.name)}
-                      whileTap={{ scale: 0.94 }}
+                      onPointerDown={(e) => {
+                        const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+                        const x = ((e.clientX - rect.left) / rect.width) * 100
+                        const y = ((e.clientY - rect.top) / rect.height) * 100
+                        ;(e.currentTarget as HTMLElement).style.setProperty('--tap-x', `${x}%`)
+                        ;(e.currentTarget as HTMLElement).style.setProperty('--tap-y', `${y}%`)
+                      }}
+                      whileTap={{ scale: 0.96 }}
                       style={{
                         '--lang-color': meta?.color ?? '#1E5631',
                         '--lang-bg': meta?.bg ?? '#e8f3e8',
+                        '--lang-gradient': meta?.gradient ?? 'linear-gradient(135deg, #e8f3e8, #d0e8d0)',
                       } as React.CSSProperties}
                     >
-                      <span className="ms-lang-emoji">{meta?.emoji}</span>
+                      <span className="ms-lang-initial">{meta?.initial}</span>
+                      <span className="ms-lang-script">{meta?.script}</span>
                       <span className="ms-lang-label">{meta?.label ?? m.name}</span>
-                      <span className="ms-lang-name">{m.name}</span>
                     </motion.button>
                   )
                 })}
@@ -436,6 +423,13 @@ export default function MobileSelector({
                       type="button"
                       className={`ms-class-btn ${isSel ? 'ms-class-btn--selected' : ''}`}
                       onClick={() => selectClass(c)}
+                      onPointerDown={(e) => {
+                        const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+                        const x = ((e.clientX - rect.left) / rect.width) * 100
+                        const y = ((e.clientY - rect.top) / rect.height) * 100
+                        ;(e.currentTarget as HTMLElement).style.setProperty('--tap-x', `${x}%`)
+                        ;(e.currentTarget as HTMLElement).style.setProperty('--tap-y', `${y}%`)
+                      }}
                       whileTap={{ scale: 0.9 }}
                     >
                       <span className="ms-class-num">{c}</span>

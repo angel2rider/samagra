@@ -222,11 +222,7 @@ export default function App() {
           <Suspense fallback={<div style={{height:500}} />}>
             {isMobile ? (
               <MobileSelector
-                initialSelection={{
-                  language: saved.current.lang,
-                  classLabel: saved.current.cls,
-                  subject: saved.current.subj ?? undefined,
-                }}
+                // Mobile always starts fresh — no saved state restoration
                 onStepChange={(step) => setMobileStep(step)}
                 onChange={(sel) => {
                   // Mobile only calls onChange when all 3 are selected.
