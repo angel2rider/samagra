@@ -1,3 +1,15 @@
 name = "samagra"
 pages_build_output_dir = "./website/dist"
 compatibility_date = "2025-07-02"
+
+# KV namespace for textbook metadata cache.
+# Create at: Cloudflare Dashboard → Workers & Pages → KV → Create namespace
+# Then replace the id below with the created namespace id.
+[[kv_namespaces]]
+binding = "TEXTBOOKS_KV"
+id = "TEXTBOOKS_KV_PLACEHOLDER"
+
+# Weekly cron trigger: sync textbook metadata from Kerala API to KV.
+# Runs every Sunday at 00:00 UTC. Adjust schedule as needed.
+[triggers]
+crons = ["0 0 * * 0"]

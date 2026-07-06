@@ -1,16 +1,12 @@
 // functions/api/textbooks.js
 //
-// Live proxy of Kerala SCERT API with a 1-hour edge cache. Replaces the
-// previous D1 mirror (which had a cross-medium mapping bug because Kerala
-// itself returns books under multiple mediums per endpoint).
+// KV-backed API with Cache API + Kerala upstream fallback.
 //
-// Contract preserved for /root/samagra/samagra-textbooks/website/src/api.ts:
-//   { textbooks: Textbook[], subjects: Subject[], total, mediumId, classId }
+// 1. KV fast-path (populated by sync-textbooks cron ~weekly): sub-50ms global.
+// 2. Cache API fallback (per-POP, 1-hour TTL).
+// 3. Kerala upstream (last resort, 2-8s).
 //
-// Cache API strategy (per edge POP, ~1 hour TTL):
-//   - The Cache API is the simplest KV-free caching; if origin (Kerala) gets
-//     overloaded we can graduate to KV (TEXTBOOKS_CACHE) later without
-//     touching the worker contract.
+// Search/subject filtering is applied in-memory after KV/Cache read.
 
 const KERALA = 'https://samagra.kite.kerala.gov.in/v2/api/public/getSubjectTextbooks';
 const CACHE_TTL = 3600; // 1 hour
@@ -45,8 +41,40 @@ function mapSubjects(rawSubjects) {
   }));
 }
 
+/**
+ * Apply in-memory subject and search filtering to KV-backed data.
+ * The KV payload stores the full unfiltered list; dynamic query filters
+ * are applied here so we can reuse a single KV key per (medium,class).
+ */
+function filterInMemory(data, mediumId, classId, subjectId, search) {
+  let textbooks = data.textbooks || [];
+  const q = search ? search.toLowerCase() : '';
+
+  // Subject filter
+  if (subjectId != null && !Number.isNaN(subjectId)) {
+    textbooks = textbooks.filter((t) => t.subjectId === subjectId);
+  }
+
+  // Search filter
+  if (q) {
+    textbooks = textbooks.filter((t) => {
+      const cn = t.chapterName;
+      const sn = t.subjectName;
+      return (cn && cn.toLowerCase().includes(q)) || (sn && sn.toLowerCase().includes(q));
+    });
+  }
+
+  return {
+    textbooks,
+    subjects: data.subjects || [],
+    total: textbooks.length,
+    mediumId,
+    classId,
+  };
+}
+
 export async function onRequest(context) {
-  const { request } = context;
+  const { request, env } = context;
   const url = new URL(request.url);
 
   const mediumId = Number(url.searchParams.get('medium')) || 2;
@@ -55,7 +83,23 @@ export async function onRequest(context) {
   const subjectId = subjectParam ? Number(subjectParam) : null;
   const search = (url.searchParams.get('search') || '').trim();
 
-  // 1. Cache hit fast-path.
+  // ── 1. KV fast-path (global, sub-50ms) ──────────────────────────────
+  if (env.TEXTBOOKS_KV) {
+    try {
+      const kvKey = `textbooks:${mediumId}:${classId}`;
+      const raw = await env.TEXTBOOKS_KV.get(kvKey);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        // Apply in-memory filtering (search & subject) before returning
+        const result = filterInMemory(parsed, mediumId, classId, subjectId, search);
+        return new Response(JSON.stringify(result), { headers: JSON_HEADERS });
+      }
+    } catch (e) {
+      // KV miss or error — fall through to Cache API + Kerala
+    }
+  }
+
+  // ── 2. Cache API fallback (per-POP, 1-hour TTL) ──────────────────────
   try {
     const cache = caches.default;
     const cacheKey = buildCacheKey(request);
@@ -68,7 +112,7 @@ export async function onRequest(context) {
     // Cache failure is non-fatal; fall through to live fetch.
   }
 
-  // 2. Live fetch from Kerala.
+  // ── 3. Live fetch from Kerala (last resort) ──────────────────────────
   let body;
   try {
     const keralaRes = await fetch(`${KERALA}/${mediumId}/${classId}`, {
