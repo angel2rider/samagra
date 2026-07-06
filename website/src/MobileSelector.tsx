@@ -365,7 +365,7 @@ export default function MobileSelector({
               animate="center"
               exit="exit"
               transition={STEP_TRANSITION}
-              className="ms-step"
+              className="ms-step ms-step--fit"
             >
               <motion.div
                 className="ms-lang-grid"
@@ -417,7 +417,7 @@ export default function MobileSelector({
               animate="center"
               exit="exit"
               transition={STEP_TRANSITION}
-              className="ms-step"
+              className="ms-step ms-step--fit"
             >
               <motion.div
                 className="ms-class-grid"
