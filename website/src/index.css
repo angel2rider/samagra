@@ -1090,6 +1090,12 @@ main {
 }
 
 @media (max-width: 767px) {
+  .nav-inner {
+    padding: 0 14px;
+    gap: 10px;
+  }
+  .logo-ml { font-size: 16px; }
+  .logo-en { font-size: 12px; }
   .selector-panel {
     margin-bottom: 0;
   }
