@@ -267,7 +267,7 @@ export default function MobileSelector({
   const canGoBack = step !== 'language' && step !== 'results'
 
   return (
-    <div className="ms-root">
+    <div className={`ms-root ${step === 'results' ? 'ms-root--results' : ''}`}>
       {/* ── Header: back button + pills ── */}
       <div className="ms-header">
         <AnimatePresence mode="popLayout">
